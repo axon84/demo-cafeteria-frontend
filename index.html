@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Demo Cafetería — Chat</title>
+
+	<!-- No-cache: el navegador nunca debe servir una versión vieja de este HTML -->
+	<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+	<meta http-equiv="Pragma" content="no-cache" />
+	<meta http-equiv="Expires" content="0" />
+
+	<link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet" />
+
+	<style>
+		html, body, #n8n-chat {
+			width: 100%;
+			height: 100%;
+			margin: 0;
+			padding: 0;
+		}
+
+		/* Branding Demo Cafetería: header azul marino, título blanco grande, subtítulo debajo */
+		:root {
+			--chat--color-dark: #0a1f44;
+			--chat--color-light: #ffffff;
+
+			--chat--header--background: #0a1f44;
+			--chat--header--color: #ffffff;
+			--chat--heading--font-size: 2rem;
+			--chat--subtitle--font-size: 1rem;
+			--chat--subtitle--line-height: 1.6;
+
+			--chat--window--width: 100%;
+			--chat--window--height: 100%;
+		}
+	</style>
+</head>
+<body>
+	<div id="n8n-chat"></div>
+
+	<script type="module">
+		import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
+
+		// Sesión nueva en cada carga de página, sin importar lo que haya en localStorage.
+		// Verificado contra el código fuente real del bundle: si se pasa `sessionId`
+		// explícito, el widget lo usa siempre (y sobreescribe con este valor la key
+		// "n8n-chat/sessionId" en localStorage); si no se pasa, con loadPreviousSession
+		// en false igual genera uno propio, pero pasarlo explícito nos da control directo.
+		const sessionId = crypto.randomUUID();
+
+		createChat({
+			webhookUrl: 'https://n8n-n8n.9es8ei.easypanel.host/webhook/69591039-505a-47e1-9c93-6c61f78cdb08/chat',
+			mode: 'fullscreen',
+			sessionId,
+			loadPreviousSession: false,
+			showWelcomeScreen: false,
+			initialMessages: [
+				'¡Hola! Bienvenido a Demo Cafetería ☕ Desde temprano molemos nuestro café de especialidad, y lo preparamos con esmero para que lo disfrutes frío o caliente. También tenemos a tu disposición nuestros diferentes emparedados, preparados en el momento — horneados o calentados en la plancha para realzar su sabor. ¿En qué te puedo ayudar hoy? ¿Quieres ver el menú, conocer los horarios, o hacer un pedido?'
+			],
+			defaultLanguage: 'en',
+			i18n: {
+				en: {
+					title: 'Demo Cafetería',
+					subtitle: 'Bot de práctica — menú, horarios y pedidos',
+					inputPlaceholder: 'Escribí tu mensaje...',
+					footer: '',
+					getStarted: 'Nueva conversación',
+				},
+			},
+		});
+	</script>
+</body>
+</html>
