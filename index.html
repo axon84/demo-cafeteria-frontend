@@ -89,6 +89,76 @@
 				},
 			},
 		});
+
+		// --- Aviso de avance del pedido (polling) ---
+		// El chat web no tiene canal de salida propio (a diferencia de WhatsApp), así que
+		// para avisar avances sin que el cliente tenga que preguntar, esta página pregunta
+		// cada cierto tiempo el estado del último pedido detectado en esta conversación.
+		const ESTADOS_TEXTO = {
+			pendiente_confirmacion_pago: 'Tu pago está en revisión.',
+			pago_confirmado: '✅ ¡Tu pago fue confirmado!',
+			listo_para_enviar: '🚚 ¡Tu pedido va en camino!',
+			entregado: '🎉 ¡Tu pedido fue entregado! Que lo disfrutes.',
+		};
+		const ESTADOS_FINALES = ['entregado', 'no_encontrado'];
+
+		let numeroPedidoActual = null;
+		let ultimoEstadoConocido = null;
+		let pollingIntervalId = null;
+
+		function mostrarAvisoPedido(texto) {
+			const aviso = document.createElement('div');
+			aviso.textContent = texto;
+			aviso.style.cssText = 'position:fixed;top:100px;left:50%;transform:translateX(-50%);' +
+				'background:#6b3f27;color:#f5e6d3;padding:14px 20px;border-radius:10px;' +
+				'box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:2000;font-family:sans-serif;' +
+				'font-size:15px;max-width:90%;text-align:center;';
+			document.body.appendChild(aviso);
+			setTimeout(() => aviso.remove(), 8000);
+		}
+
+		async function consultarEstadoPedido() {
+			if (!numeroPedidoActual) return;
+			try {
+				const resp = await fetch('https://n8n-n8n.9es8ei.easypanel.host/webhook/demo-cafeteria-estado-pedido?numero_pedido=' + encodeURIComponent(numeroPedidoActual));
+				const data = await resp.json();
+				if (data.encontrado && data.estado !== ultimoEstadoConocido) {
+					ultimoEstadoConocido = data.estado;
+					if (ESTADOS_TEXTO[data.estado]) mostrarAvisoPedido(ESTADOS_TEXTO[data.estado]);
+				}
+				if (ESTADOS_FINALES.includes(data.estado) && pollingIntervalId) {
+					clearInterval(pollingIntervalId);
+					pollingIntervalId = null;
+				}
+			} catch (e) { /* silencioso, es solo un aviso opcional */ }
+		}
+
+		function iniciarPollingSiHaceFalta() {
+			if (pollingIntervalId || !numeroPedidoActual) return;
+			pollingIntervalId = setInterval(consultarEstadoPedido, 12000);
+		}
+
+		// Detecta el número de pedido interceptando las propias respuestas del chat,
+		// sin depender de una API interna del widget (no expone hooks de mensajes).
+		const _fetchOriginal = window.fetch;
+		window.fetch = async function (...args) {
+			const respuesta = await _fetchOriginal(...args);
+			try {
+				const url = typeof args[0] === 'string' ? args[0] : args[0]?.url;
+				if (url && url.includes('/webhook/69591039-505a-47e1-9c93-6c61f78cdb08/chat')) {
+					respuesta.clone().json().then((data) => {
+						const texto = data?.output || '';
+						const match = texto.match(/CAF-\d{6}/);
+						if (match) {
+							numeroPedidoActual = match[0];
+							ultimoEstadoConocido = null;
+							iniciarPollingSiHaceFalta();
+						}
+					}).catch(() => {});
+				}
+			} catch (e) { /* silencioso */ }
+			return respuesta;
+		};
 	</script>
 </body>
 </html>
